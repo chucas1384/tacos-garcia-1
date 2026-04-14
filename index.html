@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Tacos García</title>
+
+<!-- PWA: necesario para que Chrome muestre "Añadir a pantalla de inicio" -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tacos García">
+<meta name="theme-color" content="#1a0a00">
+<link rel="manifest" id="pwa-manifest">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --rojo: #e63a12;
+    --naranja: #f97316;
+    --amarillo: #fbbf24;
+    --verde: #16a34a;
+    --azul: #0ea5e9;
+    --morado: #7c3aed;
+    --bg: #1a0a00;
+    --card: rgba(255,255,255,0.06);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    color: #fff;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(230,58,18,0.25) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(249,115,22,0.2) 0%, transparent 50%);
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    background: rgba(0,0,0,0.4);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .tab {
+    flex: 1; padding: 14px 8px;
+    text-align: center;
+    font-weight: 800; font-size: 13px;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+  }
+  .tab.active { color: #fbbf24; border-bottom-color: #fbbf24; }
+
+  /* PAGES */
+  .page { display: none; padding-bottom: 30px; }
+  .page.active { display: block; }
+
+  /* HEADER */
+  header {
+    text-align: center;
+    padding: 22px 20px 14px;
+  }
+  header::after {
+    content: '';
+    display: block;
+    width: 80%; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--naranja), var(--amarillo), var(--naranja), transparent);
+    margin: 12px auto 0;
+  }
+  .logo-emoji { font-size: 42px; display: block; margin-bottom: 2px; }
+  h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 44px;
+    background: linear-gradient(135deg, #fbbf24, #f97316, #e63a12);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    line-height: 1; letter-spacing: 1px;
+  }
+  .subtitle { font-size: 12px; color: rgba(255,255,255,0.4); letter-spacing: 3px; text-transform: uppercase; margin-top: 3px; }
+
+  /* TOTAL CARD */
+  .total-card {
+    margin: 14px 16px 16px;
+    background: linear-gradient(135deg, rgba(230,58,18,0.3), rgba(249,115,22,0.2));
+    border: 1px solid rgba(251,191,36,0.3);
+    border-radius: 20px;
+    padding: 18px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .total-label { font-size: 12px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 3px; }
+  .total-amount { font-family: 'Fredoka One', cursive; font-size: 52px; color: #fbbf24; line-height: 1; text-shadow: 0 0 30px rgba(251,191,36,0.5); }
+  .total-amount span { font-size: 26px; color: rgba(251,191,36,0.7); }
+  .clear-btn {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.7); border-radius: 12px; padding: 9px 16px;
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 13px;
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .clear-btn:active { background: rgba(255,80,80,0.3); border-color: #ff5050; color: #ff5050; transform: scale(0.95); }
+
+  /* RESUMEN */
+  .resumen {
+    margin: 0 16px 14px;
+    background: var(--card); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px; padding: 12px 16px;
+    display: flex; flex-wrap: wrap; gap: 8px; min-height: 48px; align-items: center;
+  }
+  .resumen-empty { font-size: 13px; color: rgba(255,255,255,0.3); width: 100%; text-align: center; }
+  .tag {
+    background: rgba(255,255,255,0.1); border-radius: 8px; padding: 4px 12px;
+    font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px;
+    animation: popIn 0.2s ease;
+  }
+  .tag-x { cursor: pointer; color: rgba(255,255,255,0.4); font-size: 15px; line-height: 1; padding: 0 2px; }
+  .tag-x:active { color: #ff5050; }
+
+  @keyframes popIn { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-size: 11px; font-weight: 800; letter-spacing: 4px; text-transform: uppercase;
+    color: rgba(255,255,255,0.35); padding: 0 20px; margin-bottom: 10px;
+  }
+
+  /* BOTONES TACOS */
+  .btn-row { display: flex; gap: 12px; padding: 0 16px; margin-bottom: 12px; }
+  .btn-taco {
+    flex: 1; border: none; border-radius: 18px; padding: 18px 10px;
+    font-family: 'Fredoka One', cursive; cursor: pointer;
+    transition: all 0.15s; position: relative; overflow: hidden;
+    text-align: center; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .btn-taco:active { transform: scale(0.94); box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+  .btn-taco .emoji { font-size: 34px; display: block; margin-bottom: 3px; }
+  .btn-taco .btn-name { display: block; font-size: 19px; }
+  .btn-taco .btn-price {
+    display: inline-block; margin-top: 5px;
+    background: rgba(0,0,0,0.25); border-radius: 20px; padding: 2px 13px;
+    font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 15px;
+  }
+  .btn-normal { background: linear-gradient(145deg, #e63a12, #c0310e); border-bottom: 4px solid #8b2008; }
+  .btn-especial { background: linear-gradient(145deg, #f97316, #d96010); border-bottom: 4px solid #a04808; }
+
+  /* BEBIDAS */
+  .bebidas-section { padding: 0 16px; margin-bottom: 12px; }
+  .btn-bebidas {
+    width: 100%; border: none; border-radius: 18px; padding: 16px 20px;
+    font-family: 'Fredoka One', cursive; font-size: 21px; cursor: pointer;
+    background: linear-gradient(145deg, #0ea5e9, #0880c0); border-bottom: 4px solid #065a8a;
+    color: #fff; display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4); transition: all 0.15s;
+  }
+  .btn-bebidas:active { transform: scale(0.97); }
+  .bebidas-left { display: flex; align-items: center; gap: 12px; }
+  .bebidas-arrow { font-size: 20px; transition: transform 0.3s ease; display: inline-block; }
+  .bebidas-arrow.open { transform: rotate(180deg); }
+  .bebidas-submenu { overflow: hidden; max-height: 0; transition: max-height 0.35s ease, opacity 0.3s ease; opacity: 0; }
+  .bebidas-submenu.open { max-height: 200px; opacity: 1; }
+  .sub-row { display: flex; gap: 12px; padding-top: 12px; }
+  .btn-bebida {
+    flex: 1; border: none; border-radius: 16px; padding: 16px 10px;
+    font-family: 'Fredoka One', cursive; cursor: pointer; color: #fff;
+    text-align: center; box-shadow: 0 6px 18px rgba(0,0,0,0.35); transition: all 0.15s;
+    position: relative; overflow: hidden;
+  }
+  .btn-bebida:active { transform: scale(0.93); }
+  .btn-bebida .emoji { font-size: 28px; display: block; margin-bottom: 2px; }
+  .btn-bebida .btn-name { font-size: 15px; display: block; }
+  .btn-bebida .btn-price {
+    display: inline-block; margin-top: 4px;
+    background: rgba(0,0,0,0.25); border-radius: 20px; padding: 2px 11px;
+    font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 13px;
+  }
+  .btn-refresco { background: linear-gradient(145deg, #7c3aed, #5b21b6); border-bottom: 3px solid #3b1580; }
+  .btn-agua { background: linear-gradient(145deg, #16a34a, #0f7a38); border-bottom: 3px solid #085a25; }
+
+  /* COBRAR BTN */
+  .nuevo-btn {
+    display: block; width: calc(100% - 32px); margin: 18px 16px 0;
+    padding: 17px; background: linear-gradient(135deg, var(--amarillo), var(--naranja));
+    border: none; border-radius: 18px; border-bottom: 4px solid #a06010;
+    font-family: 'Fredoka One', cursive; font-size: 22px; color: #1a0a00;
+    cursor: pointer; box-shadow: 0 8px 24px rgba(251,191,36,0.3); transition: all 0.15s; letter-spacing: 1px;
+  }
+  .nuevo-btn:active { transform: scale(0.97); }
+
+  /* ===== HISTORIAL PAGE ===== */
+  .hist-header {
+    padding: 20px 16px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .hist-header-title { font-family: 'Fredoka One', cursive; font-size: 28px; color: #fbbf24; }
+  .hist-header-sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+  .hist-empty {
+    text-align: center; padding: 60px 20px;
+    color: rgba(255,255,255,0.3); font-size: 15px;
+  }
+  .hist-empty .big { font-size: 48px; display: block; margin-bottom: 10px; }
+
+  .hist-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+  .hist-item {
+    background: var(--card); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px; padding: 14px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    animation: popIn 0.25s ease;
+  }
+  .hist-num { font-size: 11px; color: rgba(255,255,255,0.35); font-weight: 700; margin-bottom: 3px; }
+  .hist-time { font-size: 11px; color: rgba(255,255,255,0.25); }
+  .hist-items-text { font-size: 13px; color: rgba(255,255,255,0.65); margin-top: 2px; }
+  .hist-total-val { font-family: 'Fredoka One', cursive; font-size: 24px; color: #fbbf24; }
+
+  /* ===== CORTE PAGE ===== */
+  .corte-header { padding: 20px 16px 12px; }
+  .corte-header-title { font-family: 'Fredoka One', cursive; font-size: 28px; color: #fbbf24; }
+  .corte-header-sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+  .corte-no-data {
+    text-align: center; padding: 60px 20px;
+    color: rgba(255,255,255,0.3); font-size: 15px;
+  }
+  .corte-no-data .big { font-size: 48px; display: block; margin-bottom: 10px; }
+
+  .corte-body { padding: 0 16px; }
+
+  .corte-big-card {
+    background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(249,115,22,0.15));
+    border: 1px solid rgba(251,191,36,0.35); border-radius: 20px;
+    padding: 22px; text-align: center; margin-bottom: 14px;
+  }
+  .corte-big-label { font-size: 12px; font-weight: 800; letter-spacing: 4px; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 6px; }
+  .corte-big-amount { font-family: 'Fredoka One', cursive; font-size: 64px; color: #fbbf24; line-height: 1; text-shadow: 0 0 40px rgba(251,191,36,0.5); }
+  .corte-big-amount span { font-size: 30px; color: rgba(251,191,36,0.7); }
+  .corte-big-sub { font-size: 14px; color: rgba(255,255,255,0.5); margin-top: 8px; }
+
+  .corte-stats { display: flex; gap: 10px; margin-bottom: 14px; }
+  .corte-stat {
+    flex: 1; background: var(--card); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px; padding: 14px; text-align: center;
+  }
+  .corte-stat-num { font-family: 'Fredoka One', cursive; font-size: 32px; color: #fff; line-height: 1; }
+  .corte-stat-label { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+
+  .corte-desglose {
+    background: var(--card); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px; padding: 16px; margin-bottom: 14px;
+  }
+  .corte-desglose-title { font-size: 11px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,0.35); margin-bottom: 12px; }
+  .desglose-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .desglose-row:last-child { border-bottom: none; }
+  .desglose-name { font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.85); }
+  .desglose-count { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .desglose-amount { font-family: 'Fredoka One', cursive; font-size: 20px; color: #fbbf24; }
+
+  .corte-fecha {
+    text-align: center; font-size: 12px; color: rgba(255,255,255,0.3);
+    margin-bottom: 16px;
+  }
+
+  .nuevo-dia-btn {
+    display: block; width: 100%; padding: 16px;
+    background: linear-gradient(135deg, #e63a12, #c0310e);
+    border: none; border-radius: 16px; border-bottom: 4px solid #8b2008;
+    font-family: 'Fredoka One', cursive; font-size: 20px; color: #fff;
+    cursor: pointer; box-shadow: 0 8px 24px rgba(230,58,18,0.3); transition: all 0.15s;
+    margin-bottom: 10px;
+  }
+  .nuevo-dia-btn:active { transform: scale(0.97); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 500;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: #1a0a00; border: 1px solid rgba(255,80,50,0.4);
+    border-radius: 20px; padding: 28px 24px; margin: 20px;
+    text-align: center; max-width: 340px; width: 100%;
+  }
+  .modal-icon { font-size: 48px; display: block; margin-bottom: 12px; }
+  .modal-title { font-family: 'Fredoka One', cursive; font-size: 26px; color: #fff; margin-bottom: 8px; }
+  .modal-text { font-size: 14px; color: rgba(255,255,255,0.55); line-height: 1.5; margin-bottom: 22px; }
+  .modal-btns { display: flex; gap: 10px; }
+  .modal-cancel {
+    flex: 1; padding: 14px; background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 14px;
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 15px;
+    color: rgba(255,255,255,0.7); cursor: pointer;
+  }
+  .modal-confirm {
+    flex: 1; padding: 14px; background: linear-gradient(135deg, #e63a12, #c0310e);
+    border: none; border-radius: 14px;
+    font-family: 'Fredoka One', cursive; font-size: 16px;
+    color: #fff; cursor: pointer;
+  }
+
+  /* ===== SETTINGS ===== */
+  .settings-header { padding: 20px 16px 12px; }
+  .settings-header-title { font-family: 'Fredoka One', cursive; font-size: 28px; color: #fbbf24; }
+  .settings-header-sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .settings-body { padding: 0 16px 30px; display: flex; flex-direction: column; gap: 12px; }
+  .prod-card {
+    background: var(--card); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px; padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .prod-card-emoji { font-size: 28px; flex-shrink: 0; }
+  .prod-card-info { flex: 1; }
+  .prod-card-name { font-size: 15px; font-weight: 800; color: #fff; }
+  .prod-card-price { font-family: 'Fredoka One', cursive; font-size: 18px; color: #fbbf24; margin-top: 2px; }
+  .prod-card-actions { display: flex; gap: 8px; }
+  .btn-edit-prod {
+    background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.3);
+    color: #fbbf24; border-radius: 10px; padding: 7px 14px;
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 13px; cursor: pointer;
+  }
+  .btn-del-prod {
+    background: rgba(230,58,18,0.15); border: 1px solid rgba(230,58,18,0.3);
+    color: #f87171; border-radius: 10px; padding: 7px 12px;
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 13px; cursor: pointer;
+  }
+  .btn-add-prod {
+    display: block; width: 100%;
+    padding: 16px; background: linear-gradient(135deg, #16a34a, #0f7a38);
+    border: none; border-radius: 16px; border-bottom: 4px solid #085a25;
+    font-family: 'Fredoka One', cursive; font-size: 20px; color: #fff;
+    cursor: pointer; box-shadow: 0 6px 20px rgba(22,163,74,0.3); transition: all 0.15s;
+    margin-top: 4px;
+  }
+  .btn-add-prod:active { transform: scale(0.97); }
+
+  /* MODAL SETTINGS */
+  .set-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8); z-index: 600;
+    align-items: flex-end; justify-content: center;
+  }
+  .set-overlay.show { display: flex; }
+  .set-sheet {
+    background: #1a0a00; border: 1px solid rgba(251,191,36,0.25);
+    border-radius: 24px 24px 0 0; padding: 24px 20px 36px;
+    width: 100%; max-width: 480px;
+  }
+  .set-sheet-title { font-family: 'Fredoka One', cursive; font-size: 22px; color: #fbbf24; margin-bottom: 18px; text-align: center; }
+  .set-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .set-field label { font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+  .set-field input {
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px; color: #fff; font-family: 'Nunito', sans-serif;
+    font-size: 16px; font-weight: 700; padding: 12px 14px; outline: none;
+  }
+  .set-field input:focus { border-color: #fbbf24; }
+  .set-btns { display: flex; gap: 10px; margin-top: 6px; }
+  .set-cancel {
+    flex: 1; padding: 14px; background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 14px;
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 15px;
+    color: rgba(255,255,255,0.7); cursor: pointer;
+  }
+  .set-save {
+    flex: 2; padding: 14px; background: linear-gradient(135deg, #fbbf24, #f97316);
+    border: none; border-radius: 14px;
+    font-family: 'Fredoka One', cursive; font-size: 18px; color: #1a0a00;
+    cursor: pointer;
+  }
+
+  .ripple {
+    position: absolute; border-radius: 50%;
+    background: rgba(255,255,255,0.3); transform: scale(0);
+    animation: rippleAnim 0.5s linear; pointer-events: none;
+  }
+  @keyframes rippleAnim { to { transform: scale(4); opacity: 0; } }
+</style>
+</head>
+<body>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('venta')">🌮 Venta</div>
+  <div class="tab" onclick="showTab('historial')">📋 Historial</div>
+  <div class="tab" onclick="showTab('corte')">💰 Corte</div>
+  <div class="tab" onclick="showTab('settings')">⚙️ Config</div>
+</div>
+
+<!-- ===== PÁGINA VENTA ===== -->
+<div class="page active" id="page-venta">
+  <header>
+    <span class="logo-emoji">🌮</span>
+    <h1>Tacos García</h1>
+    <div class="subtitle">Punto de venta</div>
+  </header>
+
+  <div class="total-card">
+    <div>
+      <div class="total-label">Total del cliente</div>
+      <div class="total-amount" id="totalAmount"><span>$</span>0</div>
+    </div>
+    <button class="clear-btn" onclick="limpiarCliente()">🗑 Borrar</button>
+  </div>
+
+  <div class="resumen" id="resumen">
+    <div class="resumen-empty" id="resumenEmpty">Agrega productos al pedido...</div>
+  </div>
+
+  <div id="ventaProductos"></div>
+
+  <button class="nuevo-btn" onclick="nuevoCliente()">✅ Cobrar y Nuevo Cliente</button>
+</div>
+
+<!-- ===== PÁGINA HISTORIAL ===== -->
+<div class="page" id="page-historial">
+  <div class="hist-header">
+    <div>
+      <div class="hist-header-title">📋 Historial</div>
+      <div class="hist-header-sub" id="histSubtitle">Sin ventas aún</div>
+    </div>
+  </div>
+  <div id="histContent">
+    <div class="hist-empty"><span class="big">🌮</span>Aún no hay ventas registradas</div>
+  </div>
+</div>
+
+<!-- ===== PÁGINA CORTE ===== -->
+<div class="page" id="page-corte">
+  <div class="corte-header">
+    <div class="corte-header-title">💰 Corte de Caja</div>
+    <div class="corte-header-sub" id="corteFecha"></div>
+  </div>
+  <div id="corteContent">
+    <div class="corte-no-data"><span class="big">💰</span>Aún no hay ventas para mostrar</div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR NUEVO DÍA -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <span class="modal-icon">🗑️</span>
+    <div class="modal-title">¿Nuevo día?</div>
+    <div class="modal-text">Esto borrará todo el historial y los conteos del día. Asegúrate de haber anotado el corte.</div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="cerrarModal()">Cancelar</button>
+      <button class="modal-confirm" onclick="confirmarNuevoDia()">Sí, nuevo día</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PÁGINA SETTINGS ===== -->
+<div class="page" id="page-settings">
+  <div class="settings-header">
+    <div class="settings-header-title">⚙️ Configuración</div>
+    <div class="settings-header-sub">Edita o agrega productos</div>
+  </div>
+  <div class="settings-body" id="settingsBody"></div>
+</div>
+
+<!-- MODAL EDITAR/AGREGAR PRODUCTO -->
+<div class="set-overlay" id="setOverlay">
+  <div class="set-sheet">
+    <div class="set-sheet-title" id="setSheetTitle">Editar Producto</div>
+    <div class="set-field">
+      <label>Emoji</label>
+      <input type="text" id="setEmoji" placeholder="🌮" maxlength="2">
+    </div>
+    <div class="set-field">
+      <label>Nombre del producto</label>
+      <input type="text" id="setNombre" placeholder="Ej: Taco Campechano">
+    </div>
+    <div class="set-field">
+      <label>Precio ($)</label>
+      <input type="number" id="setPrecio" placeholder="0" min="0">
+    </div>
+    <div class="set-btns">
+      <button class="set-cancel" onclick="cerrarSetModal()">Cancelar</button>
+      <button class="set-save" onclick="guardarProducto()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let pedido = [];
+  let total = 0;
+  let historial = [];
+  let clienteNum = 1;
+
+  const PRODUCTOS = {
+    'Taco Normal':       { precio: 17,  emoji: '🌮' },
+    'Taco Especial':     { precio: 22,  emoji: '🔥' },
+    'Quesadilla Normal': { precio: 60,  emoji: '🧀' },
+    'Quesadilla Especial':{ precio: 90, emoji: '⭐' },
+    'Refresco':          { precio: 25,  emoji: '🥤' },
+    'Agua de Sabor':     { precio: 30,  emoji: '🧃' },
+    'Agua Medio Litro':  { precio: 20,  emoji: '💧' },
+  };
+
+  function showTab(tab) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      const tabs = ['venta','historial','corte','settings'];
+      t.classList.toggle('active', tabs[i] === tab);
+    });
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + tab).classList.add('active');
+    if (tab === 'historial') renderHistorial();
+    if (tab === 'corte') renderCorte();
+    if (tab === 'settings') renderSettings();
+  }
+
+  // ===== SETTINGS =====
+  let editandoNombre = null;
+
+  function renderSettings() {
+    const body = document.getElementById('settingsBody');
+    const colores = ['#e63a12','#f97316','#0ea5e9','#16a34a','#7c3aed','#b45309','#0284c7','#d97706'];
+    let html = '';
+    Object.entries(PRODUCTOS).forEach(([nombre, data], i) => {
+      const color = colores[i % colores.length];
+      html += `
+        <div class="prod-card">
+          <div class="prod-card-emoji">${data.emoji}</div>
+          <div class="prod-card-info">
+            <div class="prod-card-name">${nombre}</div>
+            <div class="prod-card-price">$${data.precio}</div>
+          </div>
+          <div class="prod-card-actions">
+            <button class="btn-edit-prod" onclick="abrirEditarProducto('${nombre}')">✏️ Editar</button>
+            <button class="btn-del-prod" onclick="eliminarProducto('${nombre}')">🗑</button>
+          </div>
+        </div>`;
+    });
+    html += `<button class="btn-add-prod" onclick="abrirNuevoProducto()">➕ Agregar Producto</button>`;
+    body.innerHTML = html;
+  }
+
+  function abrirEditarProducto(nombre) {
+    editandoNombre = nombre;
+    const p = PRODUCTOS[nombre];
+    document.getElementById('setSheetTitle').textContent = '✏️ Editar Producto';
+    document.getElementById('setEmoji').value = p.emoji;
+    document.getElementById('setNombre').value = nombre;
+    document.getElementById('setPrecio').value = p.precio;
+    document.getElementById('setOverlay').classList.add('show');
+  }
+
+  function abrirNuevoProducto() {
+    editandoNombre = null;
+    document.getElementById('setSheetTitle').textContent = '➕ Nuevo Producto';
+    document.getElementById('setEmoji').value = '';
+    document.getElementById('setNombre').value = '';
+    document.getElementById('setPrecio').value = '';
+    document.getElementById('setOverlay').classList.add('show');
+  }
+
+  function cerrarSetModal() {
+    document.getElementById('setOverlay').classList.remove('show');
+  }
+
+  function guardarProducto() {
+    const emoji = document.getElementById('setEmoji').value.trim() || '🌮';
+    const nombre = document.getElementById('setNombre').value.trim();
+    const precio = parseInt(document.getElementById('setPrecio').value);
+    if (!nombre) { alert('Escribe el nombre del producto'); return; }
+    if (isNaN(precio) || precio < 0) { alert('Escribe un precio válido'); return; }
+    if (editandoNombre && editandoNombre !== nombre) {
+      delete PRODUCTOS[editandoNombre];
+    }
+    PRODUCTOS[nombre] = { precio, emoji };
+    cerrarSetModal();
+    renderSettings();
+    renderVenta();
+  }
+
+  function eliminarProducto(nombre) {
+    if (!confirm(`¿Borrar "${nombre}"?`)) return;
+    delete PRODUCTOS[nombre];
+    renderSettings();
+    renderVenta();
+  }
+
+  function renderVenta() {
+    const colores = [
+      'linear-gradient(145deg,#e63a12,#c0310e)', 'linear-gradient(145deg,#f97316,#d96010)',
+      'linear-gradient(145deg,#b45309,#92400e)', 'linear-gradient(145deg,#d97706,#b45309)',
+      'linear-gradient(145deg,#7c3aed,#5b21b6)', 'linear-gradient(145deg,#0ea5e9,#0880c0)',
+      'linear-gradient(145deg,#16a34a,#0f7a38)', 'linear-gradient(145deg,#0284c7,#0369a1)',
+    ];
+    const bordes = ['#8b2008','#a04808','#6b3000','#7c3500','#3b1580','#065a8a','#085a25','#024e7a'];
+    const container = document.getElementById('ventaProductos');
+    const entries = Object.entries(PRODUCTOS);
+    let html = '';
+    for (let i = 0; i < entries.length; i += 2) {
+      html += `<div class="btn-row">`;
+      for (let j = i; j < Math.min(i+2, entries.length); j++) {
+        const [nombre, data] = entries[j];
+        const ci = j % colores.length;
+        html += `<button class="btn-taco" style="background:${colores[ci]};border-bottom:4px solid ${bordes[ci]}" onclick="agregar('${nombre}',${data.precio},this)">
+          <span class="emoji">${data.emoji}</span>
+          <span class="btn-name">${nombre}</span>
+          <span class="btn-price">$${data.precio}</span>
+        </button>`;
+      }
+      html += `</div>`;
+    }
+    container.innerHTML = html;
+  }
+
+  function agregar(nombre, precio, btn) {
+    const ripple = document.createElement('span');
+    ripple.classList.add('ripple');
+    ripple.style.width = ripple.style.height = '80px';
+    ripple.style.left = '30%'; ripple.style.top = '30%';
+    btn.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 600);
+    pedido.push({ nombre, precio, hora: new Date() });
+    total += precio;
+    actualizarVenta();
+  }
+
+  function quitarItem(index) {
+    total -= pedido[index].precio;
+    pedido.splice(index, 1);
+    actualizarVenta();
+  }
+
+  function actualizarVenta() {
+    document.getElementById('totalAmount').innerHTML = `<span>$</span>${total}`;
+    const resumen = document.getElementById('resumen');
+    const empty = document.getElementById('resumenEmpty');
+    Array.from(resumen.querySelectorAll('.tag')).forEach(t => t.remove());
+    if (pedido.length === 0) {
+      empty.style.display = 'block';
+    } else {
+      empty.style.display = 'none';
+      const grupos = {};
+      pedido.forEach((item, i) => {
+        if (!grupos[item.nombre]) grupos[item.nombre] = { count: 0, indices: [] };
+        grupos[item.nombre].count++;
+        grupos[item.nombre].indices.push(i);
+      });
+      Object.entries(grupos).forEach(([nombre, data]) => {
+        const tag = document.createElement('div');
+        tag.className = 'tag';
+        const emoji = PRODUCTOS[nombre]?.emoji || '';
+        tag.innerHTML = `${emoji} ${data.count > 1 ? data.count + 'x ' : ''}${nombre} <span class="tag-x" onclick="quitarItem(${data.indices[data.indices.length-1]})">✕</span>`;
+        resumen.appendChild(tag);
+      });
+    }
+  }
+
+  function limpiarCliente() {
+    pedido = []; total = 0;
+    actualizarVenta();
+  }
+
+  function nuevoCliente() {
+    if (pedido.length === 0) return;
+    const grupos = {};
+    pedido.forEach(item => { grupos[item.nombre] = (grupos[item.nombre] || 0) + 1; });
+    const resumenText = Object.entries(grupos).map(([n, c]) => `${c > 1 ? c + 'x ' : ''}${n}`).join(', ');
+    const ahora = new Date();
+    const hora = ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    historial.push({ num: clienteNum++, resumen: resumenText, total, hora, grupos });
+    limpiarCliente();
+  }
+
+  function renderHistorial() {
+    const cont = document.getElementById('histContent');
+    const sub = document.getElementById('histSubtitle');
+    if (historial.length === 0) {
+      cont.innerHTML = '<div class="hist-empty"><span class="big">🌮</span>Aún no hay ventas registradas</div>';
+      sub.textContent = 'Sin ventas aún';
+      return;
+    }
+    sub.textContent = `${historial.length} cliente${historial.length > 1 ? 's' : ''} atendido${historial.length > 1 ? 's' : ''}`;
+    const items = [...historial].reverse().map(h => `
+      <div class="hist-item">
+        <div>
+          <div class="hist-num">Cliente #${h.num} · <span class="hist-time">${h.hora}</span></div>
+          <div class="hist-items-text">${h.resumen}</div>
+        </div>
+        <div class="hist-total-val">$${h.total}</div>
+      </div>
+    `).join('');
+    cont.innerHTML = `<div class="hist-list">${items}</div>`;
+  }
+
+  function renderCorte() {
+    const cont = document.getElementById('corteContent');
+    const fechaEl = document.getElementById('corteFecha');
+    const hoy = new Date().toLocaleDateString('es-MX', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    fechaEl.textContent = hoy.charAt(0).toUpperCase() + hoy.slice(1);
+
+    if (historial.length === 0) {
+      cont.innerHTML = '<div class="corte-no-data"><span class="big">💰</span>Aún no hay ventas para mostrar</div>';
+      return;
+    }
+
+    const totalDia = historial.reduce((s, h) => s + h.total, 0);
+    const totalClientes = historial.length;
+
+    // Desglose por producto
+    const desglose = {};
+    historial.forEach(h => {
+      Object.entries(h.grupos).forEach(([nombre, cant]) => {
+        if (!desglose[nombre]) desglose[nombre] = { count: 0, subtotal: 0 };
+        desglose[nombre].count += cant;
+        desglose[nombre].subtotal += cant * PRODUCTOS[nombre].precio;
+      });
+    });
+
+    const desgloseHTML = Object.entries(desglose).map(([nombre, data]) => `
+      <div class="desglose-row">
+        <div>
+          <div class="desglose-name">${PRODUCTOS[nombre]?.emoji || ''} ${nombre}</div>
+          <div class="desglose-count">${data.count} vendido${data.count > 1 ? 's' : ''} × $${PRODUCTOS[nombre].precio}</div>
+        </div>
+        <div class="desglose-amount">$${data.subtotal}</div>
+      </div>
+    `).join('');
+
+    cont.innerHTML = `
+      <div class="corte-body">
+        <div class="corte-big-card">
+          <div class="corte-big-label">Total del día</div>
+          <div class="corte-big-amount"><span>$</span>${totalDia}</div>
+          <div class="corte-big-sub">${totalClientes} cliente${totalClientes > 1 ? 's' : ''} atendido${totalClientes > 1 ? 's' : ''}</div>
+        </div>
+
+        <div class="corte-stats">
+          <div class="corte-stat">
+            <div class="corte-stat-num">${totalClientes}</div>
+            <div class="corte-stat-label">Clientes</div>
+          </div>
+          <div class="corte-stat">
+            <div class="corte-stat-num">$${totalDia > 0 ? Math.round(totalDia / totalClientes) : 0}</div>
+            <div class="corte-stat-label">Promedio</div>
+          </div>
+          <div class="corte-stat">
+            <div class="corte-stat-num">${Object.values(desglose).reduce((s,d)=>s+d.count,0)}</div>
+            <div class="corte-stat-label">Productos</div>
+          </div>
+        </div>
+
+        <div class="corte-desglose">
+          <div class="corte-desglose-title">Desglose por producto</div>
+          ${desgloseHTML}
+        </div>
+
+        <button class="nuevo-dia-btn" onclick="abrirModal()">🌅 Nuevo Día / Limpiar Todo</button>
+      </div>
+    `;
+  }
+
+  function abrirModal() { document.getElementById('modalOverlay').classList.add('show'); }
+  function cerrarModal() { document.getElementById('modalOverlay').classList.remove('show'); }
+  function confirmarNuevoDia() {
+    historial = []; clienteNum = 1;
+    pedido = []; total = 0;
+    actualizarVenta();
+    renderCorte();
+    cerrarModal();
+    showTab('venta');
+  }
+
+  // Fecha inicial
+  document.getElementById('corteFecha').textContent = new Date().toLocaleDateString('es-MX', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  renderVenta();
+
+  // ===== PWA: Manifest + Service Worker inline =====
+  // Icono taco en SVG embebido como base64
+  const iconSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="100" fill="#1a0a00"/>
+    <text y="380" x="50" font-size="380">🌮</text>
+  </svg>`;
+  const iconB64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(iconSVG)));
+
+  const manifest = {
+    name: 'Tacos García',
+    short_name: 'Tacos García',
+    description: 'Punto de venta Tacos García',
+    start_url: '.',
+    display: 'standalone',
+    background_color: '#1a0a00',
+    theme_color: '#1a0a00',
+    orientation: 'portrait',
+    icons: [
+      { src: iconB64, sizes: '192x192', type: 'image/svg+xml' },
+      { src: iconB64, sizes: '512x512', type: 'image/svg+xml' }
+    ]
+  };
+  const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+  document.getElementById('pwa-manifest').href = URL.createObjectURL(manifestBlob);
+
+  // Service Worker mínimo (requerido por Chrome para mostrar el banner)
+  if ('serviceWorker' in navigator) {
+    const swCode = `
+      self.addEventListener('install', e => self.skipWaiting());
+      self.addEventListener('activate', e => e.waitUntil(clients.claim()));
+      self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
+    `;
+    const swBlob = new Blob([swCode], { type: 'application/javascript' });
+    const swUrl = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swUrl).catch(() => {});
+  }
+</script>
+</body>
+</html>
